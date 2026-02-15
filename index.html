@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>〇〇から来ました ジェネレーター</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: "Dela Gothic One", sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            padding: 20px;
+            margin: 0;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h2 { margin: 0 0 20px 0; font-size: 1.5rem; letter-spacing: 1px;}
+        
+        .input-area {
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        input[type="text"] {
+            padding: 12px;
+            font-size: 24px;
+            width: 300px;
+            text-align: center;
+            font-family: "Dela Gothic One", sans-serif;
+            border: 3px solid #000;
+            border-radius: 8px;
+            outline: none;
+            background: #fff;
+        }
+        button {
+            padding: 12px 35px;
+            font-size: 18px;
+            font-family: "Dela Gothic One", sans-serif;
+            cursor: pointer;
+            background-color: #e60012;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+        button:hover { opacity: 0.9; }
+        button:active { transform: scale(0.98); }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            display: block;
+            margin: 0 auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .note {
+            margin-top: 15px;
+            font-size: 12px;
+            color: #888;
+            font-family: "Noto Sans JP", sans-serif;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>〇〇から来ました ジェネレーター</h2>
+    
+    <div class="input-area">
+        <input type="text" id="placeName" maxlength="10" placeholder="地名 (例:海浜幕張)" value="海浜幕張">
+        <button onclick="downloadImage()">画像を保存</button>
+    </div>
+
+    <canvas id="canvas"></canvas>
+</div>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const input = document.getElementById('placeName');
+    
+    const baseImage = new Image();
+    baseImage.src = 'base.png';
+
+    document.fonts.ready.then(function () {
+        if (baseImage.complete) {
+            updateCanvas();
+        } else {
+            baseImage.onload = updateCanvas;
+        }
+    });
+
+    baseImage.onerror = function() {
+        alert("エラー: 'base.png' が見つかりません。");
+    };
+
+    input.addEventListener('input', updateCanvas);
+
+    function updateCanvas() {
+        if (!baseImage.complete) return;
+
+        canvas.width = baseImage.width;
+        canvas.height = baseImage.height;
+        const w = canvas.width;
+        const h = canvas.height;
+
+        // 1. 背景リセット（通常モード）
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(baseImage, 0, 0);
+
+        const text = input.value;
+        if (!text) return;
+
+        // --- レイアウト共通設定 ---
+        const rightAnchorX = w * 0.40; 
+        const baselineY = h * 0.56; 
+        const maxAvailableWidth = rightAnchorX - (w * 0.02);
+
+        const baseFontSize = h * 0.40; 
+        const verticalScale = 1.3;
+        const skewX = -0.2; 
+
+        // --- 事前計算 ---
+        ctx.save();
+        ctx.font = `${baseFontSize}px "Dela Gothic One", sans-serif`;
+        let spacing = 0;
+        if (text.length >= 3) spacing = -baseFontSize * 0.06;
+        if (text.length >= 5) spacing = -baseFontSize * 0.12;
+
+        let totalRawWidth = 0;
+        const charWidths = [];
+        for (let i = 0; i < text.length; i++) {
+            const charW = ctx.measureText(text[i]).width;
+            charWidths.push(charW);
+            totalRawWidth += charW;
+        }
+        totalRawWidth += (spacing * (text.length - 1));
+
+        let scaleX = 1.0;
+        if (totalRawWidth > maxAvailableWidth) {
+            scaleX = maxAvailableWidth / totalRawWidth;
+        }
+        ctx.restore();
+
+
+        // ==========================================
+        //  2. 背景パターン (大阪スタイル・ループ)
+        // ==========================================
+        ctx.save();
+        
+        //「比較(暗)」モード
+        ctx.globalCompositeOperation = 'darken';
+
+        // 背景文字サイズ（メインと同じか少し大きく）
+        const bgFontSize = baseFontSize * 1.15; 
+        
+        ctx.setTransform(1, 0, skewX, verticalScale, 0, 0);
+        ctx.font = `${bgFontSize}px "Dela Gothic One", sans-serif`;
+        
+        // ★色設定
+        // 塗り: 真っ白 (darkenモードなので、白い背景には何も起きず、黒い背景も黒のまま)
+        // フチ: シルバーグレー (白背景の上にだけ見えるようになる)
+        ctx.fillStyle = '#ffffff'; 
+        ctx.strokeStyle = '#cccccc'; 
+        ctx.lineWidth = bgFontSize * 0.015; 
+        ctx.lineJoin = 'round';
+
+        // ループ用テキスト幅
+        // 隙間なく埋めるため、measureTextより少しだけ狭く評価して詰める
+        const loopTextWidth = ctx.measureText(text).width + (bgFontSize * 0.1); 
+        
+        let loopX = -w * 1.0; 
+        const endX = w * 2.0; 
+        // 背景文字のY位置（メインと少しずらすと奥行きが出るが、今回は揃えつつ大きく）
+        const bgY = (baselineY / verticalScale);
+
+        // ループ描画
+        while (loopX < endX) {
+            ctx.strokeText(text, loopX, bgY);
+            ctx.fillText(text, loopX, bgY);
+            loopX += loopTextWidth; 
+        }
+        
+        ctx.restore();
+
+
+        // ==========================================
+        //  3. メイン文字 (黒)
+        // ==========================================
+        ctx.save();
+        // 通常モードに戻す
+        ctx.globalCompositeOperation = 'source-over';
+        
+        ctx.setTransform(scaleX, 0, skewX, verticalScale, 0, 0);
+        const skewOffset = baselineY * Math.abs(skewX);
+        let currentX = (rightAnchorX + skewOffset) / scaleX - totalRawWidth;
+        const drawY = baselineY / verticalScale;
+
+        ctx.font = `${baseFontSize}px "Dela Gothic One", sans-serif`;
+        ctx.lineJoin = 'round';
+        
+        // メイン文字：白フチ＋黒文字
+        ctx.lineWidth = (baseFontSize * 0.05) / scaleX; 
+        ctx.strokeStyle = 'white'; 
+        ctx.fillStyle = 'black';   
+
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const w = charWidths[i];
+            
+            ctx.strokeText(char, currentX, drawY);
+            ctx.fillText(char, currentX, drawY);
+            
+            currentX += w + spacing;
+        }
+        ctx.restore();
+    }
+
+    function downloadImage() {
+        const link = document.createElement('a');
+        link.download = 'marines_' + input.value + '.png';
+        link.href = canvas.toDataURL();
+        link.click();
+    }
+</script>
+
+</body>
+</html>
