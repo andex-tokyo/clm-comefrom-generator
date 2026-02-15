@@ -82,6 +82,52 @@
             color: #888;
             font-family: "Noto Sans JP", sans-serif;
         }
+
+        /* モバイル長押し保存用モーダル */
+        .save-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 20px;
+        }
+        .save-modal-overlay.active {
+            display: flex;
+        }
+        .save-modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 95vw;
+            max-height: 85vh;
+            text-align: center;
+            overflow: auto;
+        }
+        .save-modal-content p {
+            margin: 0 0 15px 0;
+            font-size: 16px;
+            color: #333;
+        }
+        .save-modal-content img {
+            max-width: 100%;
+            max-height: 60vh;
+            border-radius: 8px;
+        }
+        .save-modal-close {
+            margin-top: 15px;
+            padding: 10px 30px;
+            font-size: 16px;
+            font-family: "Dela Gothic One", sans-serif;
+            background: #666;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -95,6 +141,16 @@
     </div>
 
     <canvas id="canvas"></canvas>
+</div>
+
+<!-- モバイル用：長押し保存モーダル -->
+<div class="save-modal-overlay" id="saveModal">
+    <div class="save-modal-content">
+        <p>画像を長押しして保存してください</p>
+        <img id="saveModalImage" src="" alt="生成画像">
+        <br>
+        <button class="save-modal-close" onclick="closeSaveModal()">閉じる</button>
+    </div>
 </div>
 
 <script>
@@ -240,12 +296,51 @@
         ctx.restore();
     }
 
-    function downloadImage() {
-        const link = document.createElement('a');
-        link.download = 'comefrom_' + input.value + '.png';
-        link.href = canvas.toDataURL();
-        link.click();
+    function isMobile() {
+        return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     }
+
+    function downloadImage() {
+        if (!isMobile()) {
+            // PC: 従来通りダウンロード
+            const link = document.createElement('a');
+            link.download = 'comefrom_' + input.value + '.png';
+            link.href = canvas.toDataURL();
+            link.click();
+            return;
+        }
+
+        // モバイル: まず navigator.share() を試す
+        canvas.toBlob(function(blob) {
+            if (navigator.canShare && navigator.canShare({ files: [new File([blob], 'image.png', { type: 'image/png' })] })) {
+                var file = new File([blob], 'comefrom_' + input.value + '.png', { type: 'image/png' });
+                navigator.share({ files: [file] }).catch(function() {
+                    // 共有がキャンセルされた場合は何もしない
+                });
+            } else {
+                // share非対応: モーダルで画像を表示して長押し保存を案内
+                showSaveModal(blob);
+            }
+        }, 'image/png');
+    }
+
+    function showSaveModal(blob) {
+        var url = URL.createObjectURL(blob);
+        var modal = document.getElementById('saveModal');
+        var img = document.getElementById('saveModalImage');
+        img.onload = function() { URL.revokeObjectURL(url); };
+        img.src = url;
+        modal.classList.add('active');
+    }
+
+    function closeSaveModal() {
+        document.getElementById('saveModal').classList.remove('active');
+    }
+
+    // オーバーレイ部分クリックでも閉じる
+    document.getElementById('saveModal').addEventListener('click', function(e) {
+        if (e.target === this) closeSaveModal();
+    });
 </script>
 
 </body>
