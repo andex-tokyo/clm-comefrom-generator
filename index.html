@@ -182,10 +182,14 @@
         };
     }
 
-    // 入力時: 即時描画 + フォントサブセット読み込み後に再描画
+    // 入力時: 入力文字のフォントサブセット読み込みを明示的に要求してから描画
     input.addEventListener('input', function() {
-        updateCanvas();
-        document.fonts.ready.then(updateCanvas);
+        var text = input.value;
+        if (text) {
+            document.fonts.load('1em "Dela Gothic One"', text).then(updateCanvas);
+        } else {
+            updateCanvas();
+        }
     });
 
     function updateCanvas() {
