@@ -310,17 +310,9 @@
             return;
         }
 
-        // モバイル: まず navigator.share() を試す
+        // モバイル: モーダルで画像を表示して長押し保存を案内
         canvas.toBlob(function(blob) {
-            if (navigator.canShare && navigator.canShare({ files: [new File([blob], 'image.png', { type: 'image/png' })] })) {
-                var file = new File([blob], 'comefrom_' + input.value + '.png', { type: 'image/png' });
-                navigator.share({ files: [file] }).catch(function() {
-                    // 共有がキャンセルされた場合は何もしない
-                });
-            } else {
-                // share非対応: モーダルで画像を表示して長押し保存を案内
-                showSaveModal(blob);
-            }
+            showSaveModal(blob);
         }, 'image/png');
     }
 
