@@ -81,13 +81,6 @@
             margin: 0 auto;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
-        .note {
-            margin-top: 15px;
-            font-size: 12px;
-            color: #888;
-            font-family: "Noto Sans JP", sans-serif;
-        }
-
         /* モバイル長押し保存用モーダル */
         .save-modal-overlay {
             display: none;
@@ -173,13 +166,19 @@
         alert("エラー: 'base.png' が見つかりません。");
     };
 
-    // 画像読み込み後、フォント準備完了を待って初回描画
+    // 画像読み込み後、初期値のフォントサブセットを読み込んでから描画
+    var initialDraw = function() {
+        var text = input.value;
+        if (text) {
+            document.fonts.load('1em "Dela Gothic One"', text).then(updateCanvas);
+        } else {
+            updateCanvas();
+        }
+    };
     if (baseImage.complete) {
-        document.fonts.ready.then(updateCanvas);
+        initialDraw();
     } else {
-        baseImage.onload = function() {
-            document.fonts.ready.then(updateCanvas);
-        };
+        baseImage.onload = initialDraw;
     }
 
     // 入力時: 入力文字のフォントサブセット読み込みを明示的に要求してから描画
