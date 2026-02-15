@@ -309,23 +309,29 @@
         ctx.restore();
     }
 
-    function isMobile() {
-        return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    function isIOS() {
+        return /iPhone|iPad|iPod/i.test(navigator.userAgent);
     }
 
     function downloadImage() {
-        if (!isMobile()) {
-            // PC: 従来通りダウンロード
-            const link = document.createElement('a');
-            link.download = 'comefrom_' + input.value + '.png';
-            link.href = canvas.toDataURL();
-            link.click();
+        var fileName = 'comefrom_' + input.value + '.png';
+
+        if (isIOS()) {
+            // iOS: モーダルで画像を表示して長押し保存を案内
+            canvas.toBlob(function(blob) {
+                showSaveModal(blob);
+            }, 'image/png');
             return;
         }
 
-        // モバイル: モーダルで画像を表示して長押し保存を案内
+        // PC・Android: blob URLでダウンロード（data URLより安定）
         canvas.toBlob(function(blob) {
-            showSaveModal(blob);
+            var url = URL.createObjectURL(blob);
+            var link = document.createElement('a');
+            link.download = fileName;
+            link.href = url;
+            link.click();
+            setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
         }, 'image/png');
     }
 
