@@ -160,28 +160,28 @@
     
     const baseImage = new Image();
     baseImage.src = 'base.png';
-    var fontReady = false;
-
-    // フォントと画像の両方が揃ってから描画可能にする
-    Promise.all([
-        document.fonts.load('1em "Dela Gothic One"'),
-        new Promise(function(resolve) {
-            if (baseImage.complete) resolve();
-            else baseImage.onload = resolve;
-        })
-    ]).then(function() {
-        fontReady = true;
-        updateCanvas();
-    });
 
     baseImage.onerror = function() {
         alert("エラー: 'base.png' が見つかりません。");
     };
 
-    input.addEventListener('input', updateCanvas);
+    // 画像読み込み後、フォント準備完了を待って初回描画
+    if (baseImage.complete) {
+        document.fonts.ready.then(updateCanvas);
+    } else {
+        baseImage.onload = function() {
+            document.fonts.ready.then(updateCanvas);
+        };
+    }
+
+    // 入力時: 即時描画 + フォントサブセット読み込み後に再描画
+    input.addEventListener('input', function() {
+        updateCanvas();
+        document.fonts.ready.then(updateCanvas);
+    });
 
     function updateCanvas() {
-        if (!baseImage.complete || !fontReady) return;
+        if (!baseImage.complete) return;
 
         canvas.width = baseImage.width;
         canvas.height = baseImage.height;
